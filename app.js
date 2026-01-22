@@ -25,6 +25,33 @@ class SesameWaitlist {
         this.initParticles();
         this.startStatsAnimation();
         this.checkWalletConnection();
+        this.listenForAuth(); // Handle login return
+    }
+
+    async listenForAuth() {
+        this.supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                console.log('User signed in via X:', session.user);
+
+                // If they don't have an email in userData yet, get it from X session
+                if (!this.userData.email) {
+                    this.userData.email = session.user.email || `x_user_${session.user.id.substring(0, 5)}@sesame.io`;
+                    this.userData.twitterId = session.user.user_metadata?.user_name || session.user.id;
+                }
+
+                try {
+                    // Save to Supabase Waitlist table
+                    await this.submitToWaitlist();
+                    this.showSuccessState();
+                } catch (error) {
+                    console.error('Save error:', error);
+                    // If they are already on the list, just show success
+                    if (error.message.includes('already on the waitlist')) {
+                        this.showSuccessState();
+                    }
+                }
+            }
+        });
     }
 
     checkReferral() {
@@ -217,39 +244,27 @@ class SesameWaitlist {
     // ==========================================
     async handleTwitterLogin() {
         try {
-            // Show loading state
             const twitterBtn = document.getElementById('twitterBtn');
             twitterBtn.classList.add('loading');
-            twitterBtn.querySelector('span').textContent = 'Connecting...';
+            twitterBtn.querySelector('span').textContent = 'Connecting to X...';
 
-            // Simulate Twitter OAuth (In production, integrate with Twitter OAuth 2.0)
-            await this.simulateTwitterAuth();
+            const { data, error } = await this.supabase.auth.signInWithOAuth({
+                provider: 'twitter',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
 
-            this.userData.twitterId = 'demo_twitter_user';
-            this.userData.timestamp = Date.now();
-
-            // Show success
-            this.showSuccessState();
+            if (error) throw error;
 
         } catch (error) {
             console.error('Twitter login error:', error);
-            alert('Twitter login failed. Please try again.');
+            alert('Twitter login failed: ' + error.message);
 
             const twitterBtn = document.getElementById('twitterBtn');
             twitterBtn.classList.remove('loading');
             twitterBtn.querySelector('span').textContent = 'Continue with X';
         }
-    }
-
-    async simulateTwitterAuth() {
-        // In production, implement actual Twitter OAuth 2.0 flow
-        // For demo purposes, we'll simulate the process
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('Twitter OAuth simulation complete');
-                resolve();
-            }, 1500);
-        });
     }
 
     // ==========================================
