@@ -23,9 +23,10 @@ class SesameWaitlist {
         this.checkReferral();
         this.setupEventListeners();
         this.initParticles();
+        this.initCardTilt();
         this.startStatsAnimation();
         this.checkWalletConnection();
-        this.listenForAuth(); // Handle login return
+        this.listenForAuth();
     }
 
     async listenForAuth() {
@@ -69,6 +70,12 @@ class SesameWaitlist {
     initParticles() {
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -80,19 +87,31 @@ class SesameWaitlist {
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = Math.random() * 0.5 - 0.25;
-                this.speedY = Math.random() * 0.5 - 0.25;
-                this.opacity = Math.random() * 0.5 + 0.2;
+                this.size = Math.random() * 2 + 1;
+                this.density = (Math.random() * 30) + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.opacity = Math.random() * 0.5 + 0.3;
             }
 
             update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < mouse.radius) {
+                    let force = (mouse.radius - distance) / mouse.radius;
+                    let directionX = (dx / distance) * force * this.density;
+                    let directionY = (dy / distance) * force * this.density;
+                    this.x -= directionX;
+                    this.y -= directionY;
+                } else {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                }
 
                 if (this.x > canvas.width) this.x = 0;
                 else if (this.x < 0) this.x = canvas.width;
-
                 if (this.y > canvas.height) this.y = 0;
                 else if (this.y < 0) this.y = canvas.height;
             }
@@ -111,21 +130,13 @@ class SesameWaitlist {
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
 
-            particles.forEach(particle => {
-                particle.update();
-                particle.draw();
-            });
-
-            // Draw connections
             particles.forEach((a, i) => {
                 particles.slice(i + 1).forEach(b => {
-                    const dx = a.x - b.x;
-                    const dy = a.y - b.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 120) {
-                        ctx.strokeStyle = `rgba(123, 63, 242, ${0.15 * (1 - distance / 120)})`;
+                    const dist = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+                    if (dist < 150) {
+                        ctx.strokeStyle = `rgba(123, 63, 242, ${0.15 * (1 - dist / 150)})`;
                         ctx.lineWidth = 0.5;
                         ctx.beginPath();
                         ctx.moveTo(a.x, a.y);
@@ -134,15 +145,35 @@ class SesameWaitlist {
                     }
                 });
             });
-
             requestAnimationFrame(animate);
         }
-
         animate();
-
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+        });
+    }
+
+    initCardTilt() {
+        const card = document.getElementById('waitlistCard');
+        if (!card) return;
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const tiltX = (y - centerY) / 20;
+            const tiltY = (centerX - x) / 20;
+
+            card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+            card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
+            card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
+        });
+
+        window.addEventListener('mouseleave', () => {
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
         });
     }
 
