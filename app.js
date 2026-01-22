@@ -1,26 +1,39 @@
-// ==========================================
-// SESAME WAITLIST - WEB3 APPLICATION
-// ==========================================
+// Supabase Configuration
+const SUPABASE_URL = "https://exbhqypsrslydutbmvaq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YmhxeXBzcnNseWR1dGJtdmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg1MjMsImV4cCI6MjA4NDY3NDUyM30.pxgprscg5bCQtLs6wXwe8gG2PSOfdW0xP5F8M078pYA";
 
 class SesameWaitlist {
     constructor() {
+        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         this.web3 = null;
         this.currentAccount = null;
         this.userData = {
             email: null,
             walletAddress: null,
             twitterId: null,
+            referralCode: null,
+            referredBy: null,
             timestamp: null
         };
-        
+
         this.init();
     }
 
     init() {
+        this.checkReferral();
         this.setupEventListeners();
         this.initParticles();
         this.startStatsAnimation();
         this.checkWalletConnection();
+    }
+
+    checkReferral() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const ref = urlParams.get('ref');
+        if (ref) {
+            this.userData.referredBy = ref;
+            console.log('Referred by:', ref);
+        }
     }
 
     // ==========================================
@@ -29,13 +42,13 @@ class SesameWaitlist {
     initParticles() {
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
-        
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
         const particles = [];
         const particleCount = 100;
-        
+
         class Particle {
             constructor() {
                 this.x = Math.random() * canvas.width;
@@ -52,7 +65,7 @@ class SesameWaitlist {
 
                 if (this.x > canvas.width) this.x = 0;
                 else if (this.x < 0) this.x = canvas.width;
-                
+
                 if (this.y > canvas.height) this.y = 0;
                 else if (this.y < 0) this.y = canvas.height;
             }
@@ -71,7 +84,7 @@ class SesameWaitlist {
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             particles.forEach(particle => {
                 particle.update();
                 particle.draw();
@@ -113,7 +126,7 @@ class SesameWaitlist {
         // Animate counting up
         this.animateCounter('totalUsers', 12384, 2000);
         this.animateCounter('spotsLeft', 476, 2000);
-        
+
         // Update countdown timer
         this.updateCountdown();
         setInterval(() => this.updateCountdown(), 1000);
@@ -142,7 +155,7 @@ class SesameWaitlist {
         const distance = launch - now;
 
         const hours = Math.floor(distance / (1000 * 60 * 60));
-        
+
         document.getElementById('timeLeft').textContent = `${hours}h`;
     }
 
@@ -217,11 +230,11 @@ class SesameWaitlist {
 
             // Show success
             this.showSuccessState();
-            
+
         } catch (error) {
             console.error('Twitter login error:', error);
             alert('Twitter login failed. Please try again.');
-            
+
             const twitterBtn = document.getElementById('twitterBtn');
             twitterBtn.classList.remove('loading');
             twitterBtn.querySelector('span').textContent = 'Continue with X';
@@ -245,12 +258,12 @@ class SesameWaitlist {
     async checkWalletConnection() {
         if (typeof window.ethereum !== 'undefined') {
             this.web3 = new Web3(window.ethereum);
-            
+
             // Check if already connected
-            const accounts = await window.ethereum.request({ 
-                method: 'eth_accounts' 
+            const accounts = await window.ethereum.request({
+                method: 'eth_accounts'
             }).catch(() => []);
-            
+
             if (accounts.length > 0) {
                 this.currentAccount = accounts[0];
             }
@@ -271,11 +284,11 @@ class SesameWaitlist {
             }
 
             walletOption.classList.remove('loading');
-            
+
         } catch (error) {
             console.error('Wallet connection error:', error);
             alert(`Failed to connect ${walletType}. Please make sure you have the wallet installed.`);
-            
+
             const walletOption = document.querySelector(`[data-wallet="${walletType}"]`);
             walletOption.classList.remove('loading');
         }
@@ -288,18 +301,18 @@ class SesameWaitlist {
         }
 
         try {
-            const accounts = await window.ethereum.request({ 
-                method: 'eth_requestAccounts' 
+            const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
             });
-            
+
             this.currentAccount = accounts[0];
             this.web3 = new Web3(window.ethereum);
-            
+
             this.userData.walletAddress = this.currentAccount;
             this.userData.timestamp = Date.now();
-            
+
             this.showSuccessState();
-            
+
         } catch (error) {
             if (error.code === 4001) {
                 throw new Error('User rejected the connection');
@@ -311,7 +324,7 @@ class SesameWaitlist {
     async connectWalletConnect() {
         // In production, implement WalletConnect v2
         alert('WalletConnect integration - In production, this would use WalletConnect SDK v2.0');
-        
+
         // Simulate connection for demo
         await new Promise(resolve => setTimeout(resolve, 1500));
         this.userData.walletAddress = '0x' + Math.random().toString(16).substr(2, 40);
@@ -322,7 +335,7 @@ class SesameWaitlist {
     async connectCoinbase() {
         // In production, implement Coinbase Wallet SDK
         alert('Coinbase Wallet integration - In production, this would use Coinbase Wallet SDK');
-        
+
         // Simulate connection for demo
         await new Promise(resolve => setTimeout(resolve, 1500));
         this.userData.walletAddress = '0x' + Math.random().toString(16).substr(2, 40);
@@ -336,7 +349,7 @@ class SesameWaitlist {
     async handleEmailSubmit() {
         const emailInput = document.getElementById('emailInput');
         const email = emailInput.value.trim();
-        
+
         if (!this.validateEmail(email)) {
             alert('Please enter a valid email address');
             return;
@@ -354,11 +367,11 @@ class SesameWaitlist {
             this.userData.timestamp = Date.now();
 
             this.showSuccessState();
-            
+
         } catch (error) {
             console.error('Email submission error:', error);
             alert('Failed to join waitlist. Please try again.');
-            
+
             const submitBtn = document.querySelector('.submit-btn');
             submitBtn.classList.remove('loading');
             submitBtn.querySelector('span').textContent = 'Join Waitlist';
@@ -371,23 +384,44 @@ class SesameWaitlist {
     }
 
     async submitToWaitlist(data) {
-        // In production, send to your backend API
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('Submitted to waitlist:', data);
-                
-                // Save to localStorage for demo
-                const existingData = JSON.parse(localStorage.getItem('waitlistData') || '[]');
-                existingData.push({
-                    ...data,
-                    ...this.userData,
-                    timestamp: Date.now()
+        try {
+            // Generate a simple referral code (first 6 chars of email or random)
+            const refCode = (this.userData.email ? this.userData.email.split('@')[0] : 'user') + Math.random().toString(36).substring(2, 6);
+            this.userData.referralCode = refCode;
+
+            const { data: result, error } = await this.supabase
+                .from('waitlist')
+                .insert([
+                    {
+                        email: this.userData.email,
+                        wallet_address: this.userData.walletAddress,
+                        twitter_id: this.userData.twitterId,
+                        referral_code: this.userData.referralCode,
+                        referred_by: this.userData.referredBy
+                    }
+                ])
+                .select();
+
+            if (error) {
+                if (error.code === '23505') { // Unique violation
+                    throw new Error('This email or wallet is already on the waitlist!');
+                }
+                throw error;
+            }
+
+            // If referred by someone, increment their count (optional backend logic, usually better in RPC/Function)
+            if (this.userData.referredBy) {
+                await this.supabase.rpc('increment_referral_count', {
+                    ref_code: this.userData.referredBy
                 });
-                localStorage.setItem('waitlistData', JSON.stringify(existingData));
-                
-                resolve();
-            }, 1500);
-        });
+            }
+
+            console.log('Successfully added to Supabase:', result);
+            return result;
+        } catch (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
     }
 
     // ==========================================
@@ -395,23 +429,31 @@ class SesameWaitlist {
     // ==========================================
     showSuccessState() {
         this.showStep(3);
-        
+
         // Update display values
         if (this.userData.walletAddress) {
             const addressDisplay = document.getElementById('displayWalletAddress');
             addressDisplay.textContent = this.formatAddress(this.userData.walletAddress);
             document.getElementById('walletAddressRow').style.display = 'flex';
         }
-        
+
         if (this.userData.email) {
             document.getElementById('displayEmail').textContent = this.userData.email;
             document.getElementById('emailRow').style.display = 'flex';
         }
-        
+
+        // Show referral link
+        const refLink = `${window.location.origin}${window.location.pathname}?ref=${this.userData.referralCode}`;
+        const refDisplay = document.getElementById('displayReferralLink');
+        if (refDisplay) {
+            refDisplay.textContent = this.userData.referralCode;
+            refDisplay.title = refLink;
+        }
+
         // Generate random position for demo
         const position = Math.floor(Math.random() * 5000) + 1;
         document.getElementById('positionValue').textContent = position.toLocaleString();
-        
+
         // Add confetti effect
         this.celebrateSuccess();
     }
@@ -429,23 +471,24 @@ class SesameWaitlist {
     // SOCIAL SHARING
     // ==========================================
     shareOnTwitter() {
-        const text = encodeURIComponent('I just joined the @Sesame waitlist! 🚀 Join me in the future of Web3.');
-        const url = encodeURIComponent(window.location.href);
+        const refLink = `${window.location.origin}${window.location.pathname}?ref=${this.userData.referralCode}`;
+        const text = encodeURIComponent(`I just joined the @Sesame waitlist! 🚀 Use my link to move up the list:`);
+        const url = encodeURIComponent(refLink);
         window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
     }
 
     copyLink() {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url).then(() => {
+        const refLink = `${window.location.origin}${window.location.pathname}?ref=${this.userData.referralCode}`;
+        navigator.clipboard.writeText(refLink).then(() => {
             const copyBtn = document.querySelector('.copy-link span');
             const originalText = copyBtn.textContent;
-            copyBtn.textContent = 'Copied!';
-            
+            copyBtn.textContent = 'Link Copied!';
+
             setTimeout(() => {
                 copyBtn.textContent = originalText;
             }, 2000);
         }).catch(() => {
-            alert('Failed to copy link. Please copy manually: ' + url);
+            alert('Failed to copy link. Please copy manually: ' + refLink);
         });
     }
 }
