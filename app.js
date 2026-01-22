@@ -1,6 +1,6 @@
 // Supabase Configuration
-const SUPABASE_URL = "https://exbhqypsrslydutbmvaq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YmhxeXBzcnNseWR1dGJtdmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg1MjMsImV4cCI6MjA4NDY3NDUyM30.pxgprscg5bCQtLs6wXwe8gG2PSOfdW0xP5F8M078pYA";
+const SUPABASE_URL = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL || "https://exbhqypsrslydutbmvaq.supabase.co" : "https://exbhqypsrslydutbmvaq.supabase.co";
+const SUPABASE_ANON_KEY = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YmhxeXBzcnNseWR1dGJtdmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg1MjMsImV4cCI6MjA4NDY3NDUyM30.pxgprscg5bCQtLs6wXwe8gG2PSOfdW0xP5F8M078pYA" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4YmhxeXBzcnNseWR1dGJtdmFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTg1MjMsImV4cCI6MjA4NDY3NDUyM30.pxgprscg5bCQtLs6wXwe8gG2PSOfdW0xP5F8M078pYA";
 
 class SesameWaitlist {
     constructor() {
